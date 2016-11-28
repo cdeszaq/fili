@@ -47,12 +47,14 @@ import com.yahoo.bard.webservice.druid.model.orderby.SortDirection;
 import com.yahoo.bard.webservice.druid.model.query.AllGranularity;
 import com.yahoo.bard.webservice.druid.model.query.Granularity;
 import com.yahoo.bard.webservice.druid.util.FieldConverterSupplier;
+import com.yahoo.bard.webservice.logging.RequestLog;
 import com.yahoo.bard.webservice.table.LogicalTable;
 import com.yahoo.bard.webservice.table.TableIdentifier;
 import com.yahoo.bard.webservice.util.StreamUtils;
 import com.yahoo.bard.webservice.web.util.BardConfigResources;
 import com.yahoo.bard.webservice.web.util.PaginationParameters;
 
+import org.glassfish.jersey.internal.util.Producer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
@@ -182,12 +184,17 @@ public class DataApiRequest extends ApiRequest {
 
         GranularityParser granularityParser = bardConfigResources.getGranularityParser();
         DimensionDictionary dimensionDictionary = bardConfigResources.getDimensionDictionary();
-        MetricDictionary metricDictionary = bardConfigResources.getMetricDictionary();
 
-        timeZone = generateTimeZone(timeZoneId, bardConfigResources.getSystemTimeZone());
+        timeZone = timeGenerator(
+                () -> generateTimeZone(timeZoneId, bardConfigResources.getSystemTimeZone()),
+                "generatingTimeZone"
+        );
 
         // Time grain must be from allowed interval keywords
-        this.granularity = generateGranularity(granularity, timeZone, granularityParser);
+        this.granularity = timeGenerator(
+                () -> generateGranularity(granularity, timeZone, granularityParser),
+                "generatingGranularity"
+        );
 
         TableIdentifier tableId = new TableIdentifier(tableName, this.granularity);
 
@@ -200,40 +207,70 @@ public class DataApiRequest extends ApiRequest {
 
         DateTimeFormatter dateTimeFormatter = generateDateTimeFormatter(timeZone);
 
-        this.intervals = generateIntervals(intervals, this.granularity, dateTimeFormatter);
-
-        metricDictionary = metricDictionary.getScope(Collections.singletonList(tableName));
+        this.intervals = timeGenerator(
+                () -> generateIntervals(intervals, this.granularity, dateTimeFormatter),
+                "GeneratingIntervals"
+        );
 
         this.filterBuilder = bardConfigResources.getFilterBuilder();
 
+        MetricDictionary metricDictionary = bardConfigResources
+                .getMetricDictionary()
+                .getScope(Collections.singletonList(tableName));
+
         // At least one logical metric is required
-        this.logicalMetrics = generateLogicalMetrics(logicalMetrics, metricDictionary, dimensionDictionary, table);
+        this.logicalMetrics = timeGenerator(
+                () -> generateLogicalMetrics(logicalMetrics, metricDictionary, dimensionDictionary, table),
+                "GeneratingLogicalMetrics"
+        );
         validateMetrics(this.logicalMetrics, this.table);
 
         // Zero or more grouping dimensions may be specified
-        this.dimensions = generateDimensions(dimensions, dimensionDictionary);
+        this.dimensions = timeGenerator(
+                () -> generateDimensions(dimensions, dimensionDictionary),
+                "GeneratingDimensions"
+        );
         validateRequestDimensions(this.dimensions, this.table);
 
         // Map of dimension to its fields specified using show clause (matrix params)
-        this.perDimensionFields = generateDimensionFields(dimensions, dimensionDictionary);
+        this.perDimensionFields = timeGenerator(
+                () -> generateDimensionFields(dimensions, dimensionDictionary),
+                "GeneratingDimensionFields"
+        );
 
         // Zero or more filtering dimensions may be referenced
-        this.filters = generateFilters(filters, table, dimensionDictionary);
+        this.filters = timeGenerator(
+                () -> generateFilters(filters, table, dimensionDictionary),
+                "GeneratingFilters"
+        );
         validateRequestDimensions(this.filters.keySet(), this.table);
 
+        RequestLog.startTiming("BuildingDruidFilter");
         try {
             this.filter = filterBuilder.buildFilters(this.filters);
         } catch (DimensionRowNotFoundException e) {
             LOG.debug(e.getMessage());
             throw new BadApiRequestException(e);
+        } finally {
+            RequestLog.stopTiming("BuildingDruidFilter");
         }
 
         // Zero or more having queries may be referenced
-        this.havings = generateHavings(havings, this.logicalMetrics,  metricDictionary);
-        this.having = DruidHavingBuilder.buildHavings(this.havings);
+        this.havings = timeGenerator(
+                () -> generateHavings(havings, this.logicalMetrics,  metricDictionary),
+                "GeneratingHavings"
+        );
+
+        this.having = timeGenerator(
+                () -> DruidHavingBuilder.buildHavings(this.havings),
+                "BuildingDruidHavings"
+        );
 
         // Requested sort on metrics - optional, can be empty Set
-        this.sorts = generateSortColumns(sorts, this.logicalMetrics, metricDictionary);
+        this.sorts = timeGenerator(
+                () -> generateSortColumns(sorts, this.logicalMetrics, metricDictionary),
+                "GeneratingSortColumns"
+        );
 
         // Overall requested number of rows in the response. Ignores grouping in time buckets.
         this.count = generateInteger(count, "count");
@@ -287,6 +324,24 @@ public class DataApiRequest extends ApiRequest {
 
         validateAggregatability(this.dimensions, this.filters);
         validateTimeAlignment(this.granularity, this.intervals);
+    }
+
+    /**
+     * Times the execution of the specified producer, making sure to stop timing in a finally clause.
+     *
+     * @param generator  The producer to be timed
+     * @param timerName  The name to use for the timer
+     * @param <T>  The type of the object produced
+     *
+     * @return The value returned by the generator
+     */
+    private <T> T timeGenerator(Producer<T> generator, String timerName) {
+        try {
+            RequestLog.startTiming(timerName);
+            return generator.call();
+        } finally {
+            RequestLog.stopTiming(timerName);
+        }
     }
 
     /**

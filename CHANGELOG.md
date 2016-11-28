@@ -10,7 +10,7 @@ Current
 
 ### Added:
 
-
+- [Logs more finegrained timings of the request processing workflow](https://github.com/yahoo/fili/pull/110)
 
 ### Changed:
 

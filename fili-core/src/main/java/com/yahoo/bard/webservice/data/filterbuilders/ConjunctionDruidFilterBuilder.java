@@ -11,6 +11,7 @@ import com.yahoo.bard.webservice.druid.model.dimension.extractionfunction.Extrac
 import com.yahoo.bard.webservice.druid.model.filter.Filter;
 import com.yahoo.bard.webservice.druid.model.filter.SelectorFilter;
 import com.yahoo.bard.webservice.druid.model.util.ModelUtil;
+import com.yahoo.bard.webservice.logging.RequestLog;
 import com.yahoo.bard.webservice.web.ApiFilter;
 import com.yahoo.bard.webservice.web.ErrorMessageFormat;
 
@@ -42,7 +43,10 @@ public abstract class ConjunctionDruidFilterBuilder implements DruidFilterBuilde
 
         List<Filter> dimensionFilters = new ArrayList<>(filterMap.size());
         for (Map.Entry<Dimension, Set<ApiFilter>> entry : filterMap.entrySet()) {
+            String filterTimerName = "Building" + entry.getKey().getApiName() + "Filters";
+            RequestLog.startTiming(filterTimerName);
             dimensionFilters.add(buildDimensionFilter(entry.getKey(), entry.getValue()));
+            RequestLog.stopTiming(filterTimerName);
         }
 
         // for a single filter just return the entry and not a collection containing one entry
