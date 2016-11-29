@@ -1014,7 +1014,9 @@ public class DataApiRequest extends ApiRequest {
                     if (filterOperation.equals(FilterOperation.startswith)
                             || filterOperation.equals(FilterOperation.contains)
                             ) {
-                        throw new BadApiRequestException(ErrorMessageFormat.FILTER_SUBSTRING_OPERATIONS_DISABLED.format());
+                        throw new BadApiRequestException(
+                                ErrorMessageFormat.FILTER_SUBSTRING_OPERATIONS_DISABLED.format()
+                        );
 
                     }
                 }
@@ -1080,7 +1082,9 @@ public class DataApiRequest extends ApiRequest {
 
             if (!unmatchedMetrics.isEmpty()) {
                 LOG.debug(HAVING_METRICS_NOT_IN_QUERY_FORMAT.logFormat(unmatchedMetrics.toString()));
-                throw new BadApiRequestException(HAVING_METRICS_NOT_IN_QUERY_FORMAT.format(unmatchedMetrics.toString()));
+                throw new BadApiRequestException(
+                        HAVING_METRICS_NOT_IN_QUERY_FORMAT.format(unmatchedMetrics.toString())
+                );
 
             }
 

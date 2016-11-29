@@ -23,6 +23,11 @@ public class DruidFilterInfo implements LogInfo {
 
     protected final Map<String, Long> numEachFilterType;
 
+    /**
+     * Constructor.
+     *
+     * @param filter  The filter that needs to be analyzed
+     */
     public DruidFilterInfo(Filter filter) {
         numEachFilterType = buildFilterCount(filter);
     }
