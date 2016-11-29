@@ -11,7 +11,6 @@ import com.yahoo.bard.webservice.druid.model.dimension.extractionfunction.Extrac
 import com.yahoo.bard.webservice.druid.model.filter.Filter;
 import com.yahoo.bard.webservice.druid.model.filter.SelectorFilter;
 import com.yahoo.bard.webservice.druid.model.util.ModelUtil;
-import com.yahoo.bard.webservice.logging.RequestLog;
 import com.yahoo.bard.webservice.web.ApiFilter;
 import com.yahoo.bard.webservice.web.ErrorMessageFormat;
 

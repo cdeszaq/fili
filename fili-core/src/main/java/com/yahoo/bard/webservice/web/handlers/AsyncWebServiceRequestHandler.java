@@ -51,12 +51,7 @@ public class AsyncWebServiceRequestHandler extends BaseDataRequestHandler {
         HttpErrorCallback error = response.getErrorCallback(druidQuery);
         FailureCallback failure = response.getFailureCallback(druidQuery);
 
-        try {
-            RequestLog.startTiming("PostingDruidQuery");
-            druidWebService.postDruidQuery(context, success, error, failure, druidQuery);
-        } finally {
-            RequestLog.stopTiming("PostingDruidQuery");
-        }
+        druidWebService.postDruidQuery(context, success, error, failure, druidQuery);
         return true;
     }
 }
