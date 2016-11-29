@@ -297,16 +297,16 @@ public class AsyncDruidWebServiceImpl implements DruidWebService {
             DruidQuery<?> druidQuery
     ) {
         String entityBody;
+        long seqNum = druidQuery.getContext().getSequenceNumber();
         try {
-            RequestLog.startTiming("DruidQuerySerialization");
+            RequestLog.startTiming("DruidQuerySerializationSeq" + seqNum);
             entityBody = writer.writeValueAsString(druidQuery);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         } finally {
-            RequestLog.stopTiming("DruidQuerySerialization");
+            RequestLog.stopTiming("DruidQuerySerializationSeq" + seqNum);
         }
 
-        long seqNum = druidQuery.getContext().getSequenceNumber();
         long totalQueries = druidQuery.getContext().getNumberOfQueries();
         String format = String.format("%%0%dd", String.valueOf(totalQueries).length());
         String timerName;

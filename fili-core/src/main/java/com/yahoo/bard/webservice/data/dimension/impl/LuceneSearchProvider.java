@@ -546,11 +546,9 @@ public class LuceneSearchProvider implements SearchProvider {
         TreeSet<DimensionRow> filteredDimRows;
         int documentCount;
         initializeIndexSearcher();
-        RequestLog.startTiming("LuceneReadLock");
         lock.readLock().lock();
-        RequestLog.stopTiming("LuceneReadLock");
         try {
-            RequestLog.startTiming("LuceneToPage" + paginationParameters.getPage());
+            RequestLog.startTiming("QueryingLucene");
             ScoreDoc[] hits = getPageOfData(luceneIndexSearcher, null, query, perPage, requestedPageNumber).scoreDocs;
             if (hits.length == 0) {
                 if (requestedPageNumber == 1) {
@@ -566,7 +564,7 @@ public class LuceneSearchProvider implements SearchProvider {
                     throw new PageNotFoundException(requestedPageNumber, perPage, 0);
                 }
             }
-
+            RequestLog.stopTiming("QueryingLucene");
             // convert hits to dimension rows
             String idKey = DimensionStoreKeyUtils.getColumnKey(dimension.getKey().getName());
             filteredDimRows = Arrays.stream(hits)
@@ -591,7 +589,7 @@ public class LuceneSearchProvider implements SearchProvider {
             throw new RuntimeException(e);
         } finally {
             lock.readLock().unlock();
-            RequestLog.stopTiming("LuceneToPage" + paginationParameters.getPage());
+            RequestLog.stopTiming("QueryingLucene");
         }
         return new SinglePagePagination<>(
                 Collections.unmodifiableList(filteredDimRows.stream().collect(Collectors.toList())),
@@ -636,11 +634,8 @@ public class LuceneSearchProvider implements SearchProvider {
             int perPage,
             int currentPage
     ) {
-        RequestLog.startTiming("QueryingLuceneForPage" + currentPage + "ReadLock");
         lock.readLock().lock();
-        RequestLog.stopTiming("QueryingLuceneForPage" + currentPage + "ReadLock");
         try {
-            RequestLog.startTiming("QueryingLuceneForPage" + currentPage);
             return lastEntry == null ?
                     indexSearcher.search(query, perPage) :
                     indexSearcher.searchAfter(lastEntry, query, perPage);
@@ -649,7 +644,6 @@ public class LuceneSearchProvider implements SearchProvider {
             LOG.error(errorMessage);
             throw new RuntimeException(errorMessage);
         } finally {
-            RequestLog.stopTiming("QueryingLuceneForPage" + currentPage);
             lock.readLock().unlock();
         }
     }

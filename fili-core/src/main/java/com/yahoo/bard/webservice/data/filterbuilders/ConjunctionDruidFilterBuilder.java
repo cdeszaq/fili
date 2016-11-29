@@ -43,10 +43,7 @@ public abstract class ConjunctionDruidFilterBuilder implements DruidFilterBuilde
 
         List<Filter> dimensionFilters = new ArrayList<>(filterMap.size());
         for (Map.Entry<Dimension, Set<ApiFilter>> entry : filterMap.entrySet()) {
-            String filterTimerName = "Building" + entry.getKey().getApiName() + "Filters";
-            RequestLog.startTiming(filterTimerName);
             dimensionFilters.add(buildDimensionFilter(entry.getKey(), entry.getValue()));
-            RequestLog.stopTiming(filterTimerName);
         }
 
         // for a single filter just return the entry and not a collection containing one entry
