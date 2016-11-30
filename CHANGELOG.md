@@ -17,6 +17,9 @@ Current
 
 ### Changed:
 
+- [Make `SegmentMetadata::equals` `null`-safe](https://github.com/yahoo/fili/pull/113)
+    * It was not properly checking for `null` before and could have exploded
+
 - [Remove restriction for single physical dimension to multiple lookup dimensions](https://github.com/yahoo/fili/pull/112)
     * Modified physical dimension name to logical dimension name mapping into a `Map<String, Set<String>>` instead of `Map<String, String>` in `PhysicalTable.java`
 
