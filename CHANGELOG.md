@@ -10,6 +10,8 @@ Current
 
 ### Added:
 
+- [Stream utils for dealing with `Map`s](https://github.com/yahoo/fili/pull/113)
+
 - [Log a warning if `SegmentMetadataLoader` tries to load empty segment metadata](https://github.com/yahoo/fili/pull/113)
     * While not an error condition (eg. configuration migration), it's unusual, and likely shouldn't stay this way long
 
